@@ -2,6 +2,7 @@
 #define CILQR_CORE_HPP
 
 #include "cilqr_define.hpp"
+
 namespace cilqr {
 
 class CILQR

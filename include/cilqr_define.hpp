@@ -2,6 +2,7 @@
 #define CILQR_DEFINE_HPP
 
 #include <vector>
+#include <Eigen/Dense>
 
 namespace cilqr {
 struct SolverConfig
