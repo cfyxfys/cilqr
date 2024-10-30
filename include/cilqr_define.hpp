@@ -40,7 +40,7 @@ struct SolverData
 {
     virtual ~ModelInterface() = default;
     virtual void UpdateDynamic(const Eigen::VectorXd& state, const Eigen::VectorXd& input, const int32_t& step) = 0;
-    virtual void GetDynamicDerivative(const Eigen::VectorXd& state, const Eigen::VectorXd& input, const int32_t& step, Eigen::MatrixXd& f_x, Eigen::MatrixXd& f_u) const = 0;
+    virtual void GetDynamicDerivative(const Eigen::VectorXd& state, const Eigen::VectorXd& input, const int32_t& step, Eigen::MatrixXd* f_x, Eigen::MatrixXd* f_u) const = 0;
     virtual Eigen::VectorXd GetState() const = 0;
 };
 

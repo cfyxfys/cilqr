@@ -19,8 +19,8 @@ file(GLOB_RECURSE SOURCES
     "include/*.hpp"
 )
 
-# 创建可执行文件
-add_executable(${PROJECT_NAME} ${SOURCES})
+# 创建库文件（静态库）
+add_library(${PROJECT_NAME} STATIC ${SOURCES})
 
 # 添加头文件路径
 target_include_directories(${PROJECT_NAME}
