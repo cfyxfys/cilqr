@@ -10,54 +10,54 @@ namespace cilqr
   {
   public:
     virtual ~CILQRCost() = default;
-    virtual double ComputeCost(const Eigen::VectorXd &state,
-                           const Eigen::VectorXd &input,
-                           const int32_t &step) const
+    virtual double ComputeStepCost(const Eigen::VectorXd &state,
+                                   const Eigen::VectorXd &input,
+                                   const int32_t &step) const
     {
       return 0.0;
     }
 
-    virtual void ComputeTerminalCost(const Eigen::VectorXd &state,
-                                 const int32_t &step, Eigen::MatrixXd &l_x,
-                                 Eigen::MatrixXd &l_xx) const {return;}
+    virtual double ComputeTerminalCost(const Eigen::VectorXd &state) const { return 0.0; }
 
     virtual void ComputeQuadraticApproximation(const Eigen::VectorXd &state,
-                                           const Eigen::VectorXd &input,
-                                           const int32_t &step,
-                                           Eigen::MatrixXd &l_x,
-                                           Eigen::MatrixXd &l_u,
-                                           Eigen::MatrixXd &l_xx,
-                                           Eigen::MatrixXd &l_uu,
-                                           Eigen::MatrixXd &l_xu) const {return;}
+                                               const Eigen::VectorXd &input,
+                                               const int32_t &step,
+                                               Eigen::MatrixXd &l_x,
+                                               Eigen::MatrixXd &l_u,
+                                               Eigen::MatrixXd &l_xx,
+                                               Eigen::MatrixXd &l_uu,
+                                               Eigen::MatrixXd &l_xu) const { return; }
 
     // terminal state has on input and its derivatives
     // l_u, l_uu, l_xu are zeros
- 
-    virtual void ComputeTerminalQuadraticApproximation(const Eigen::VectorXd &state,
-                                           const int32_t &step,
-                                           Eigen::MatrixXd &l_x,
-                                           Eigen::MatrixXd &l_xx) const {return;}
 
-    virtual uint8_t ComputeCostID() const {return 0;}                                           
+    virtual void ComputeTerminalQuadraticApproximation(const Eigen::VectorXd &state,
+                                                       const int32_t &step,
+                                                       Eigen::MatrixXd &l_x,
+                                                       Eigen::MatrixXd &l_xx) const { return; }
+
+    virtual uint8_t GetCostID() const { return 0; }
   };
 
-  class CILQRCostManager {
-    public:
-      CILQRCostManager() = default;
-      ~CILQRCostManager() = default;
+  class CILQRCostManager
+  {
+  public:
+    CILQRCostManager(const std::shared_ptr<ModelInterface> model_ptr, const std::shared_ptr<SolverConfig> config_ptr) : config_ptr_(config_ptr), model_ptr_(model_ptr) {}
 
-      void AddCost(std::shared_ptr<CILQRCost> cost_ptr) {cost_ptr_list_.push_back(cost_ptr);}
-      void SetModel(const ModelInterface* model_ptr) {model_ptr_ = model_ptr;}
+    ~CILQRCostManager() = default;
 
-      void ComputeAllCost();
-      void ComputeAllTerminalCost();
-      void ComputeAllQuadraticApproximation();
-      void ComputeAllTerminalQuadraticApproximation();
+    void AddCost(std::shared_ptr<CILQRCost> cost_ptr) { cost_ptr_list_.push_back(cost_ptr); }
 
-    private:
-      std::vector<std::shared_ptr<CILQRCost>> cost_ptr_list_;
-      const ModelInterface* model_ptr_;
-      const SolverConfig* config_ptr_;
+    double ComputeStepCosts(Eigen::VectorXd state_vec, Eigen::VectorXd input_vec, int8_t step);
+
+    void ComputeAllCost();
+
+    void ComputeAllQuadraticApproximation();
+
+  private:
+    std::vector<std::shared_ptr<CILQRCost>> cost_ptr_list_;
+    const std::shared_ptr<ModelInterface> model_ptr_;
+    const std::shared_ptr<SolverConfig> config_ptr_;
   };
 
 } // namespace cilqr
