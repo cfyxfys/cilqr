@@ -9,10 +9,14 @@ namespace cilqr
     struct SolverConfig
     {
         // constant parameters
+        const int MaxOutterIterationCount = 10;
+        const int MaxInnerIterationCount = 10;
+
         const int MaxBackwardPassCount = 100;
         const double MaxLambda = 1.0;
         const double MinLambda = 1e-6;
         const double LambdaIncreaseRate = 1.1;
+        const double init_regular_factor = 1.0;
         const std::vector<double> line_search_alpha_vec = {0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
 
         // variable parameters
@@ -24,13 +28,16 @@ namespace cilqr
         // flag param
         bool is_warm_start = false;
         bool is_debug_mode = false;
+        bool is_constraint = false;
     };
 
     enum SolverCondition
     {
         Init,
         Success,
+        Converged,
         InitializationFailed,
+        BackwardFailed,
         MaxBackwardPassCountReached,
         MinLambdaReached,
     };
@@ -59,15 +66,18 @@ namespace cilqr
         return;
     }
 
-    struct SolverTimeInfo
+    struct SolverInfo
     {
+        SolverCondition condition;
         double start_time{0.0};
         double end_time;
     };
 
+    // data used in iteration
     struct SolverCoreData
     {
         double cost{0.0};
+        double regular_factor{1.0};
         std::vector<Eigen::VectorXd> state_vec; // dim = N + 1, 0 is current state, N + 1 is terminal state
         std::vector<Eigen::VectorXd> input_vec; // dim = N
         std::vector<Eigen::VectorXd> last_state_vec;
@@ -87,6 +97,7 @@ namespace cilqr
         void Reset(int32_t state_dim, int32_t input_dim, int32_t horizon)
         {
             cost = 0.0;
+            regular_factor = 1.0;
             ResizeAndResetEigenVec(state_vec, horizon + 1, state_dim);
             ResizeAndResetEigenVec(input_vec, horizon, input_dim);
             ResizeAndResetEigenVec(last_state_vec, horizon + 1, state_dim);
@@ -106,11 +117,16 @@ namespace cilqr
         }
     };
 
+    struct SolverConstraintData{
+        Eigen::VectorXd c;
+        Eigen::VectorXd c_projection;
+        
+    };
+
     struct SolverData
     {
         SolverConfig config;
-        SolverCondition condition;
-        SolverTimeInfo time_info;
+        SolverInfo info;
         SolverCoreData core_data;
     };
 

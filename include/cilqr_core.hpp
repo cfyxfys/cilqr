@@ -18,10 +18,20 @@ namespace cilqr
     void Init();
     void Reset();
 
-    bool IsDebugMode() { return solver_data_ptr_->config.is_debug_mode; };
+    bool IsDebugMode() { return config_ptr_->is_debug_mode; };
     void AddWarmStart(const Eigen::VectorXd &input_vec) { warm_start_list.push_back(input_vec); };
 
   private:
+    SolverCondition InnerIteration(SolverCoreData &data, SolverInfo &info);
+    SolverCondition OutterIteration(SolverCoreData &data, SolverInfo &info);
+    void UpdateDerivatives(SolverCoreData &data);
+    bool BackwardPass(SolverCoreData &data);
+    bool ForwardPass(SolverCoreData &data, double &actual_cost);
+
+    void UpdatePanelties();
+    void UpdateMultipliers();
+    bool CheckConvergence(bool forward_success, double new_cost, double expect_cost, double &regular_factor);
+
     std::shared_ptr<SolverData> solver_data_ptr_;
     const std::shared_ptr<ModelInterface> model_ptr_;
     const std::shared_ptr<SolverConfig> config_ptr_;
