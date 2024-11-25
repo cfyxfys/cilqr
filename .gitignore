@@ -1,2 +1,5 @@
 # 忽略 build 目录
 /build/
+# 忽略 bazel 生成的文件
+/bazel-*
+/MODULE.*
