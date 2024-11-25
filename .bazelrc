@@ -1,0 +1,3 @@
+common --distdir=https://mirrors.tuna.tsinghua.edu.cn/bazel-mirror/
+build --distdir=C:\Users\feiyu\Documents\vs_ws\bazel_distdir
+build --action_env=JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF-8
