@@ -43,6 +43,7 @@ class CILQR {
   const std::shared_ptr<ModelInterface> model_ptr_;
   const std::shared_ptr<SolverConfig> config_ptr_;
   std::shared_ptr<CILQRCostManager> cost_manager_ptr_;
+  std::shared_ptr<CILQRConstraintManager> constraint_manager_ptr_;
   std::vector<Eigen::VectorXd> warm_start_list;
 };
 
