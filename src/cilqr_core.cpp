@@ -197,9 +197,9 @@ bool CILQR::BackwardPass(SolverCoreData &data) {
                              data.fb_k_vec[i] +
                          data.fb_k_vec[i] * data.Q_ux_vec[i];
 
-      data.dV[i] += data.ff_k_vec[i].transpose() * data.Q_u_vec[i];
-      data.dV[i] += 0.5 * data.ff_k_vec[i].transpose() * data.Q_uu_vec[i] *
-                    data.ff_k_vec[i];
+      data.dV[i][0] = data.ff_k_vec[i].transpose() * data.Q_u_vec[i];
+      data.dV[i][1] = 0.5 * data.ff_k_vec[i].transpose() * data.Q_uu_vec[i] *
+                      data.ff_k_vec[i];
     }
 
     if (backward_success) {
@@ -212,14 +212,68 @@ bool CILQR::BackwardPass(SolverCoreData &data) {
       return false;
     }
 
-    // InceaseRegularFactor();
+    IncreaseRegularFactor();
   }
 
   return true;
 }
 
-void CILQR::IncreaseRegularFactor(){
+bool CILQR::ForwardPass(SolverCoreData &data, double &actual_cost) {
+  for (int32_t i = 0; i <= config_ptr_->line_search_alpha_vec.size(); ++i) {
+    const double alpha = config_ptr_->line_search_alpha_vec[i];
+    actual_cost = 0.0;
+    data.last_state_vec = data.state_vec;
+    data.last_input_vec = data.input_vec;
+    double dV_0 = 0.0;
+    double dV_1 = 0.0;
+
+    for (int32_t j = 0; j <= config_ptr_->horizon; ++j) {
+      data.input_vec[0] =
+          data.last_input_vec[j] + alpha * data.ff_k_vec[j] +
+          (data.input_vec[j] - data.last_input_vec[j]) * data.fb_k_vec[j];
+
+      actual_cost += cost_manager_ptr_->ComputeStepCosts(data.state_vec[j],
+                                                         data.input_vec[j], j);
+      actual_cost += constraint_manager_ptr_->ComputeStepAugmentedCost(
+          data.state_vec[j], data.input_vec[j], j);
+
+      data.state_vec[j + 1] =
+          model_ptr_->UpdateDynamic(data.state_vec[j], data.input_vec[j], j);
+    }
+
+    for (int32_t i = 0; i < config_ptr_->horizon; ++i) {
+      dV_0 += data.dV[i][0];
+      dV_1 += data.dV[i][1];
+    }
+    auto expected_cost = -1.0 * alpha * (dV_0 + alpha * dV_1);
+
+    if (expected_cost > 0.0) {
+      // improvement ratio is okay
+      if ((data.cost - actual_cost) / expected_cost > config_ptr_->kCostRatio) {
+        return true;
+      }
+
+      // cost is converged
+      if (expected_cost < config_ptr_->kCostTolerance) {
+        solver_data_ptr_->info.condition = SolverCondition::Converged;
+        return true;
+      }
+    } else {
+      solver_data_ptr_->info.condition =
+          SolverCondition::NO_POSITIVE_EXPECTED_COST;
+      return false;
+    }
+  }
+  solver_data_ptr_->info.condition = SolverCondition::LINE_SEARCH_FAILED;
+  return false;
+}
+void CILQR::IncreaseRegularFactor() {
   solver_data_ptr_->core_data.regular_factor *=
+      config_ptr_->kRegularFactorIncreaseRate;
+}
+
+void CILQR::DecreaseRegularFactor() {
+  solver_data_ptr_->core_data.regular_factor /=
       config_ptr_->kRegularFactorIncreaseRate;
 }
 

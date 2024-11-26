@@ -11,10 +11,14 @@ struct SolverConfig {
   const int kMaxInnerIterationCount = 10;
 
   const int kMaxBackwardPassCount = 100;
+
+  const double init_regular_factor = 1.0;
   const double kMaxRegularFactor = 1.0;
   const double kMinRegularFactor = 1e-6;
   const double kRegularFactorIncreaseRate = 1.1;
-  const double init_regular_factor = 1.0;
+
+  const double kCostRatio = 0.01;
+  const double kCostTolerance = 1e-2;
   const std::vector<double> line_search_alpha_vec = {
       0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
 
@@ -34,6 +38,8 @@ enum SolverCondition {
   Init,
   Success,
   Converged,
+  NO_POSITIVE_EXPECTED_COST,
+  LINE_SEARCH_FAILED,
   InitializationFailed,
   BackwardFailed,
   MaxBackwardPassCountReached,
@@ -103,17 +109,17 @@ struct SolverCoreData {
   // N, n, n
   std::vector<Eigen::MatrixXd> fb_k_vec;
   // N, n, m
-  std::vector<Eigen::MatrixXd> ff_k_vec;
+  std::vector<Eigen::VectorXd> ff_k_vec;
 
   // N, n
-  std::vector<Eigen::MatrixXd> V_x_vec;
+  std::vector<Eigen::VectorXd> V_x_vec;
   // N, n, n
   std::vector<Eigen::MatrixXd> V_xx_vec;
 
   // N, n, n
-  std::vector<Eigen::MatrixXd> Q_x_vec;
+  std::vector<Eigen::VectorXd> Q_x_vec;
   // N, n, m
-  std::vector<Eigen::MatrixXd> Q_u_vec;
+  std::vector<Eigen::VectorXd> Q_u_vec;
   // N, n, n
   std::vector<Eigen::MatrixXd> Q_xx_vec;
   // N, n, m
@@ -142,13 +148,13 @@ struct SolverCoreData {
     ResizeAndResetEigenMat(f_x_vec, horizon, state_dim, state_dim);
     ResizeAndResetEigenMat(f_u_vec, horizon, state_dim, input_dim);
     ResizeAndResetEigenMat(fb_k_vec, horizon, state_dim, state_dim);
-    ResizeAndResetEigenMat(ff_k_vec, horizon, state_dim, input_dim);
+    ResizeAndResetEigenVec(ff_k_vec, horizon, input_dim);
 
-    ResizeAndResetEigenMat(V_x_vec, horizon, state_dim, state_dim);
+    ResizeAndResetEigenVec(V_x_vec, horizon, state_dim);
     ResizeAndResetEigenMat(V_xx_vec, horizon, state_dim, state_dim);
 
-    ResizeAndResetEigenMat(Q_x_vec, horizon, state_dim, state_dim);
-    ResizeAndResetEigenMat(Q_u_vec, horizon, state_dim, input_dim);
+    ResizeAndResetEigenVec(Q_x_vec, horizon, state_dim);
+    ResizeAndResetEigenVec(Q_u_vec, horizon, input_dim);
     ResizeAndResetEigenMat(Q_xx_vec, horizon, state_dim, state_dim);
     ResizeAndResetEigenMat(Q_uu_vec, horizon, state_dim, input_dim);
     ResizeAndResetEigenMat(Q_ux_vec, horizon, state_dim, input_dim);
