@@ -28,15 +28,15 @@ class CILQR {
   SolverCondition OuterIteration(SolverCoreData &data, SolverInfo &info);
   void UpdateDerivatives(SolverCoreData &data);
   bool BackwardPass(SolverCoreData &data);
-  bool ForwardPass(SolverCoreData &data, double &actual_cost);
+  bool ForwardPass(SolverCoreData &data, double &actual_cost, double &expect_cost);
   void IncreaseRegularFactor();
   void DecreaseRegularFactor();
 
   void UpdatePanelties();
   void UpdateMultipliers();
-  bool CheckConvergence(bool forward_success, double new_cost,
-                        double expect_cost, double &regular_factor);
-
+  bool CheckConvergence(bool forward_success, double &new_cost,
+                        double &expect_cost, double &regular_factor);
+  bool IsConstraintSatisfied();
   //
   bool PSDCheck(const Eigen::MatrixXd &matrix);
   std::shared_ptr<SolverData> solver_data_ptr_;

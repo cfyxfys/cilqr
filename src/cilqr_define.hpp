@@ -19,6 +19,7 @@ struct SolverConfig {
 
   const double kCostRatio = 0.01;
   const double kCostTolerance = 1e-2;
+  
   const std::vector<double> line_search_alpha_vec = {
       0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
 
@@ -37,10 +38,12 @@ struct SolverConfig {
 enum SolverCondition {
   Init,
   Success,
-  Converged,
+  EXPECTED_COST_CONVERGED,
+  DCOST_CONVERGED,
   NO_POSITIVE_EXPECTED_COST,
   LINE_SEARCH_FAILED,
-  InitializationFailed,
+  REGULIZATION_FAILED,
+  INITFAILED,
   BackwardFailed,
   MaxBackwardPassCountReached,
   MinLambdaReached,

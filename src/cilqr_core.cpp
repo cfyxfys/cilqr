@@ -58,7 +58,7 @@ SolverCondition CILQR::Solve() {
 
   // 2. init state
   if (model_ptr_->GetState().size() != config_ptr_->state_dim) {
-    return SolverCondition::InitializationFailed;
+    return SolverCondition::INITFAILED;
   } else {
     solver_data_ptr_->core_data.state_vec[0] = model_ptr_->GetState();
   }
@@ -78,6 +78,7 @@ SolverCondition CILQR::Solve() {
   return solver_data_ptr_->info.condition;
 }
 
+
 SolverCondition CILQR::OuterIteration(SolverCoreData &data, SolverInfo &info) {
   // todo: data clean
   for (int iter_num = 0; iter_num < config_ptr_->kMaxOuterIterationCount;
@@ -86,9 +87,9 @@ SolverCondition CILQR::OuterIteration(SolverCoreData &data, SolverInfo &info) {
     UpdatePanelties();
     UpdateMultipliers();
 
-    // if (CheckConvergence()) {
-    //   break;
-    // }
+    if (constraint_manager_ptr_->ConstraintSatisfied()) {
+      break;
+    }
   }
 
   return SolverCondition::Success;
@@ -118,7 +119,7 @@ SolverCondition CILQR::InnerIteration(SolverCoreData &data, SolverInfo &info) {
     // 3. forward
     double expect_cost = 0.0;
     double actual_cost = 0.0;
-    forward_success = ForwardPass(data, actual_cost);
+    forward_success = ForwardPass(data, actual_cost, expect_cost);
 
     // 4. convergence check
     if (CheckConvergence(forward_success, actual_cost, expect_cost,
@@ -218,7 +219,8 @@ bool CILQR::BackwardPass(SolverCoreData &data) {
   return true;
 }
 
-bool CILQR::ForwardPass(SolverCoreData &data, double &actual_cost) {
+bool CILQR::ForwardPass(SolverCoreData &data, double &actual_cost,
+                        double &expect_cost) {
   for (int32_t i = 0; i <= config_ptr_->line_search_alpha_vec.size(); ++i) {
     const double alpha = config_ptr_->line_search_alpha_vec[i];
     actual_cost = 0.0;
@@ -255,7 +257,8 @@ bool CILQR::ForwardPass(SolverCoreData &data, double &actual_cost) {
 
       // cost is converged
       if (expected_cost < config_ptr_->kCostTolerance) {
-        solver_data_ptr_->info.condition = SolverCondition::Converged;
+        solver_data_ptr_->info.condition =
+            SolverCondition::EXPECTED_COST_CONVERGED;
         return true;
       }
     } else {
@@ -275,6 +278,33 @@ void CILQR::IncreaseRegularFactor() {
 void CILQR::DecreaseRegularFactor() {
   solver_data_ptr_->core_data.regular_factor /=
       config_ptr_->kRegularFactorIncreaseRate;
+}
+
+bool CILQR::CheckConvergence(bool forward_success, double &new_cost,
+                             double &expect_cost, double &regular_factor) {
+  if (forward_success) {
+    DecreaseRegularFactor();
+    // 1. cost is converged
+    if (solver_data_ptr_->info.condition ==
+        SolverCondition::EXPECTED_COST_CONVERGED) {
+      return true;
+    }
+    // 2. delta cost converged
+    if (std::abs(new_cost - expect_cost) < config_ptr_->kCostTolerance) {
+      solver_data_ptr_->info.condition = SolverCondition::DCOST_CONVERGED;
+      return true;
+    }
+
+  } else {
+    IncreaseRegularFactor();
+
+    //
+    if (regular_factor > config_ptr_->kMaxRegularFactor) {
+      solver_data_ptr_->info.condition = SolverCondition::REGULIZATION_FAILED;
+    }
+
+    return false;
+  }
 }
 
 }  // namespace cilqr
